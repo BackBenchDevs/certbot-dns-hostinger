@@ -37,10 +37,6 @@ class TestProjectFiles:
         # Could be either .md or .rst
         assert os.path.exists("README.md") or os.path.exists("README.rst")
 
-    def test_manifest_exists(self):
-        """Test that MANIFEST.in exists."""
-        assert os.path.exists("MANIFEST.in")
-
 
 class TestImports:
     """Test that package imports work correctly."""

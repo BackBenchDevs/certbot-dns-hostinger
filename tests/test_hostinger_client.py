@@ -1,7 +1,7 @@
 """Tests for _HostingerClient class."""
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch, MagicMock, ANY
 from certbot import errors
 from certbot_dns_hostinger._internal.dns_hostinger import _HostingerClient
 
@@ -25,9 +25,9 @@ class TestHostingerClientInit:
 class TestGetAPIClient:
     """Test _get_api_client method."""
 
-    @patch("certbot_dns_hostinger._internal.dns_hostinger.Configuration")
-    @patch("certbot_dns_hostinger._internal.dns_hostinger.ApiClient")
-    @patch("certbot_dns_hostinger._internal.dns_hostinger.DNSZoneApi")
+    @patch("hostinger_api.Configuration")
+    @patch("hostinger_api.ApiClient")
+    @patch("hostinger_api.DNSZoneApi")
     def test_api_client_initialization(self, mock_dns_api, mock_api_client, mock_config, api_token):
         """Test that API client initializes on first call."""
         client = _HostingerClient(api_token)
@@ -40,9 +40,9 @@ class TestGetAPIClient:
         mock_dns_api.assert_called_once()
         assert api_client is not None
 
-    @patch("certbot_dns_hostinger._internal.dns_hostinger.Configuration")
-    @patch("certbot_dns_hostinger._internal.dns_hostinger.ApiClient")
-    @patch("certbot_dns_hostinger._internal.dns_hostinger.DNSZoneApi")
+    @patch("hostinger_api.Configuration")
+    @patch("hostinger_api.ApiClient")
+    @patch("hostinger_api.DNSZoneApi")
     def test_api_client_caching(self, mock_dns_api, mock_api_client, mock_config, api_token):
         """Test that API client is cached after first initialization."""
         client = _HostingerClient(api_token)
@@ -58,10 +58,7 @@ class TestGetAPIClient:
         mock_dns_api.assert_called_once()
         assert api_client1 is api_client2
 
-    @patch(
-        "certbot_dns_hostinger._internal.dns_hostinger.DNSZoneApi",
-        side_effect=ImportError("Module not found"),
-    )
+    @patch("hostinger_api.DNSZoneApi", side_effect=ImportError("Module not found"))
     def test_api_client_import_error(self, mock_dns_api, api_token):
         """Test that ImportError is caught and raises PluginError."""
         client = _HostingerClient(api_token)
@@ -194,7 +191,7 @@ class TestDelTxtRecord:
         client.del_txt_record(test_domain, "_acme-challenge.bbdevs.com", "content")
 
         # Verify DELETE was called
-        mock_api.delete_dns_records_v1.assert_called_once_with(test_domain, pytest.any)
+        mock_api.delete_dns_records_v1.assert_called_once_with(test_domain, ANY)
 
     @patch.object(_HostingerClient, "_get_api_client")
     def test_del_txt_record_subdomain(self, mock_get_client, api_token):
