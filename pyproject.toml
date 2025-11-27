@@ -1,10 +1,71 @@
 [build-system]
-requires = ["setuptools>=64.0.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "certbot-dns-hostinger"
-dynamic = ["version", "dependencies"]
+version = "0.2.0.dev1"
+description = "Certbot DNS plugin for Hostinger"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "A M", email = "am@bbdevs.com"}
+]
+keywords = ["certbot", "letsencrypt", "dns", "hostinger", "ssl", "tls", "acme"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Plugins",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Security",
+    "Topic :: System :: Installation/Setup",
+    "Topic :: System :: Networking",
+    "Topic :: System :: Systems Administration",
+    "Topic :: Utilities",
+]
+requires-python = ">=3.9"
+dependencies = [
+    "certbot>=4.2.0",
+    "acme>=4.2.0",
+    "hostinger-api>=0.0.15",
+    "urllib3>=2.2.1"
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.14.6",
+    "twine>=6.2.0",
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock>=3.10.0",
+    "responses>=0.23.0",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.6",
+    "twine>=6.2.0",
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock>=3.10.0",
+    "responses>=0.23.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/BackBenchDevs/certbot-dns-hostinger"
+Repository = "https://github.com/BackBenchDevs/certbot-dns-hostinger"
+Issues = "https://github.com/BackBenchDevs/certbot-dns-hostinger/issues"
+Changelog = "https://github.com/BackBenchDevs/certbot-dns-hostinger/releases"
+
+[project.entry-points."certbot.plugins"]
+dns-hostinger = "certbot_dns_hostinger:Authenticator"
 
 [tool.ruff]
 target-version = "py39"
