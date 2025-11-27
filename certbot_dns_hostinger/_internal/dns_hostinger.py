@@ -131,9 +131,7 @@ class _HostingerClient:
                     "Could not import hostinger-api. Please install it with: "
                     "pip install hostinger-api"
                 )
-                raise errors.PluginError(
-                    msg
-                ) from e
+                raise errors.PluginError(msg) from e
         logger.info("Hostinger API client obtained")
         return self._api_client
 

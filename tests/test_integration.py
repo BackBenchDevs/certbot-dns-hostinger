@@ -13,7 +13,9 @@ class TestFullCertificateFlow:
 
     @patch("certbot_dns_hostinger._internal.dns_hostinger.dns_common.DNSAuthenticator.__init__")
     @patch.object(Authenticator, "_get_hostinger_client")
-    def test_add_and_cleanup_challenge(self, mock_get_client, mock_super_init, mock_certbot_config, api_token):
+    def test_add_and_cleanup_challenge(
+        self, mock_get_client, mock_super_init, mock_certbot_config, api_token
+    ):
         """Test complete add and cleanup flow for a single domain."""
         mock_super_init.return_value = None
         mock_client = Mock()
@@ -37,9 +39,7 @@ class TestFullCertificateFlow:
         auth._cleanup(domain, validation_name, validation)
 
         # Verify record was deleted
-        mock_client.del_txt_record.assert_called_once_with(
-            domain, validation_name, validation
-        )
+        mock_client.del_txt_record.assert_called_once_with(domain, validation_name, validation)
 
 
 class TestWildcardCertificates:
@@ -124,7 +124,9 @@ class TestConcurrentChallenges:
 
     @patch("certbot_dns_hostinger._internal.dns_hostinger.dns_common.DNSAuthenticator.__init__")
     @patch.object(Authenticator, "_get_hostinger_client")
-    def test_multiple_domain_challenges(self, mock_get_client, mock_super_init, mock_certbot_config):
+    def test_multiple_domain_challenges(
+        self, mock_get_client, mock_super_init, mock_certbot_config
+    ):
         """Test handling multiple domains (e.g., bbdevs.com and *.bbdevs.com)."""
         mock_super_init.return_value = None
         mock_client = Mock()
@@ -143,7 +145,9 @@ class TestConcurrentChallenges:
 
     @patch("certbot_dns_hostinger._internal.dns_hostinger.dns_common.DNSAuthenticator.__init__")
     @patch.object(Authenticator, "_get_hostinger_client")
-    def test_different_domains_in_san_cert(self, mock_get_client, mock_super_init, mock_certbot_config):
+    def test_different_domains_in_san_cert(
+        self, mock_get_client, mock_super_init, mock_certbot_config
+    ):
         """Test SAN certificate with different domains."""
         mock_super_init.return_value = None
         mock_client = Mock()
@@ -266,4 +270,3 @@ class TestDifferentTLDs:
         client.add_txt_record("example.org", "_acme-challenge.example.org", "content", 300)
 
         mock_api.get_dns_records_v1.assert_called_once_with("example.org")
-
