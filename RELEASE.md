@@ -2,182 +2,196 @@
 
 This document describes how to release `certbot-dns-hostinger` to PyPI.
 
-## Automated Release via GitHub Actions
+## Branch Strategy
 
-The package is automatically published to PyPI when a tag or release is created.
+- **master**: Development branch (version: `X.Y.Z.dev1`)
+- **staging**: Release preparation (cherry-picked stable commits)
+- **Tags**: Created from staging for releases (`vX.Y.Z`)
+
+## Automated Release (Recommended)
 
 ### Prerequisites
 
-#### Option 1: Trusted Publishing (Recommended - No Tokens!)
-
-PyPI supports [Trusted Publishing](https://docs.pypi.org/trusted-publishers/) which uses OIDC to authenticate without API tokens.
-
-1. Go to [PyPI account settings](https://pypi.org/manage/account/publishing/)
-2. Scroll to "Pending publishers" or "Add a new pending publisher"
-3. Fill in:
-   - **PyPI Project Name**: `certbot-dns-hostinger`
-   - **Owner**: `BackBenchDevs`
-   - **Repository name**: `certbot-dns-hostinger`
-   - **Workflow name**: `publish.yml`
-   - **Environment name**: `pypi`
-
-That's it! No tokens needed.
-
-#### Option 2: API Token (Legacy)
-
-1. Generate PyPI API token at https://pypi.org/manage/account/token/
-2. Add to GitHub repository secrets:
-   - Go to `Settings` > `Secrets and variables` > `Actions`
-   - Click `New repository secret`
-   - Name: `PYPI_API_TOKEN`
-   - Value: Your PyPI token (starts with `pypi-`)
-
-Then update `.github/workflows/publish.yml`:
-```yaml
-- name: Publish to PyPI
-  uses: pypa/gh-action-pypi-publish@release/v1
-  with:
-    password: ${{ secrets.PYPI_API_TOKEN }}
-```
+1. **GitHub CLI** installed and authenticated: `gh auth login`
+2. **PyPI Trusted Publishing** configured (see [Setup](#first-time-setup-checklist))
+3. **Branch/tag rulesets** applied (see `.github/rulesets/`)
 
 ### Release Steps
 
-#### From Staging Branch (Production Release)
-
-1. **Update version** in `pyproject.toml`:
-   ```toml
-   version = "0.1.0"  # Remove .dev suffix
-   ```
-
-2. **Commit and push** to staging:
-   ```bash
-   git add pyproject.toml
-   git commit -m "Release v0.1.0"
-   git push origin staging
-   ```
-
-3. **Create and push tag**:
-   ```bash
-   git tag v0.1.0
-   git push origin v0.1.0
-   ```
-
-4. **Create GitHub Release**:
-   - Go to https://github.com/BackBenchDevs/certbot-dns-hostinger/releases/new
-   - Select tag: `v0.1.0`
-   - Title: `v0.1.0`
-   - Generate release notes or write changelog
-   - Click "Publish release"
-
-5. **GitHub Actions will automatically**:
-   - Build the package using `uv build`
-   - Run tests (from tests.yml workflow)
-   - Publish to PyPI (from publish.yml workflow)
-
-6. **Update version for next dev cycle** on master:
-   ```bash
-   git checkout master
-   # Update version to 0.2.0.dev1
-   git add pyproject.toml
-   git commit -m "Bump version to 0.2.0.dev1"
-   git push origin master
-   ```
-
-#### Test Release (TestPyPI)
-
-To test the release process without publishing to production PyPI:
-
 ```bash
-# Trigger workflow manually (goes to TestPyPI)
-gh workflow run publish.yml
-```
+# 1. Run the release orchestrator
+./scripts/release_orchestrator.sh v1.2.3 <commit1> <commit2> ...
 
-Or go to GitHub Actions > Publish to PyPI > Run workflow
+# Examples:
+./scripts/release_orchestrator.sh v0.2.0 abc123 def456 ghi789
+./scripts/release_orchestrator.sh v0.2.0 master~5..master  # range
+```
 
 ### What Happens Automatically
 
-When you push a tag (`v*`):
+1. **For each commit**:
+   - Cherry-picks onto staging branch
+   - Pushes to origin/staging
+   - Waits for CI (test 3.11, test 3.12, lint) to pass
+   - On failure: reverts commit, creates GitHub issue, aborts
 
-1. **Build Job**:
-   - Checks out code
-   - Installs uv
-   - Builds package: `uv build`
-   - Creates `dist/certbot_dns_hostinger-X.Y.Z.tar.gz` and `.whl`
-   - Uploads artifacts
+2. **After all commits pass**:
+   - Triggers `Create Release Tag` workflow
+   - Updates version in `pyproject.toml`
+   - Creates annotated tag `vX.Y.Z`
+   - Creates GitHub Release with auto-generated notes
+   - `publish.yml` triggers automatically to push to PyPI
 
-2. **Publish Job**:
-   - Downloads build artifacts
-   - Publishes to PyPI using trusted publishing or API token
-   - Package appears at: https://pypi.org/project/certbot-dns-hostinger/
+### Manual Workflow Trigger
 
-### Version Numbering
+If you prefer to create the tag manually after cherry-picks:
+
+```bash
+gh workflow run "Create Release Tag" -f version=v1.2.3 -f create_release=true
+```
+
+Or via GitHub UI: **Actions → Create Release Tag → Run workflow**
+
+---
+
+## Manual Release (Fallback)
+
+If automation fails, you can release manually:
+
+### 1. Cherry-pick commits to staging
+
+```bash
+git checkout staging
+git pull origin staging
+git cherry-pick <commit-hash>
+git push origin staging
+# Wait for CI to pass, then repeat for each commit
+```
+
+### 2. Update version
+
+```bash
+# Edit pyproject.toml
+version = "0.2.0"  # Remove .dev suffix
+
+git add pyproject.toml
+git commit -m "chore: release v0.2.0"
+git push origin staging
+```
+
+### 3. Create and push tag
+
+```bash
+git tag -a v0.2.0 -m "Release v0.2.0"
+git push origin v0.2.0
+```
+
+### 4. Create GitHub Release
+
+- Go to https://github.com/BackBenchDevs/certbot-dns-hostinger/releases/new
+- Select tag: `v0.2.0`
+- Generate release notes
+- Publish
+
+### 5. Bump version for next dev cycle
+
+```bash
+git checkout master
+# Update version to 0.3.0.dev1
+git add pyproject.toml
+git commit -m "chore: bump version to 0.3.0.dev1"
+git push origin master
+```
+
+---
+
+## PyPI Publishing
+
+### Trusted Publishing (Recommended)
+
+No tokens needed. Configure at [PyPI](https://pypi.org/manage/account/publishing/):
+
+| Field | Value |
+|-------|-------|
+| Project Name | `certbot-dns-hostinger` |
+| Owner | `BackBenchDevs` |
+| Repository | `certbot-dns-hostinger` |
+| Workflow | `publish.yml` |
+| Environment | `pypi` |
+
+### Manual Upload (Fallback)
+
+```bash
+uv build
+uv publish
+```
+
+---
+
+## Rulesets
+
+Apply rulesets via GitHub UI or API:
+
+```bash
+# Apply master ruleset
+gh api repos/BackBenchDevs/certbot-dns-hostinger/rulesets \
+  --method POST \
+  --input .github/rulesets/master.json
+
+# Apply staging ruleset
+gh api repos/BackBenchDevs/certbot-dns-hostinger/rulesets \
+  --method POST \
+  --input .github/rulesets/staging.json
+
+# Apply tag ruleset
+gh api repos/BackBenchDevs/certbot-dns-hostinger/rulesets \
+  --method POST \
+  --input .github/rulesets/release-tags.json
+```
+
+---
+
+## Version Numbering
 
 Follow [Semantic Versioning](https://semver.org/):
 
-- **Development**: `0.2.0.dev1`, `0.2.0.dev2`, etc.
-- **Release Candidate**: `0.2.0rc1` (optional)
-- **Production**: `0.1.0`, `0.2.0`, `1.0.0`, etc.
-- **Patch**: `0.1.1`, `0.1.2`, etc.
+| Type | Format | Example |
+|------|--------|---------|
+| Development | `X.Y.Z.dev1` | `0.2.0.dev1` |
+| Release Candidate | `X.Y.Zrc1` | `0.2.0rc1` |
+| Production | `X.Y.Z` | `0.2.0` |
+| Patch | `X.Y.Z` | `0.2.1` |
 
-### Branch Strategy
+---
 
-- **master**: Development (version: `X.Y.Z.dev1`)
-- **staging**: Pre-release (version: `X.Y.Z` or `X.Y.Zrc1`)
-- **Tags**: Created from staging for releases
+## Troubleshooting
 
-### Manual Release (Fallback)
+| Issue | Solution |
+|-------|----------|
+| Cherry-pick conflict | Resolve manually, then retry |
+| CI timeout | Check Actions logs, increase `CI_POLL_TIMEOUT` |
+| "File already exists" on PyPI | Can't re-upload same version; bump and retry |
+| Tag already exists | Delete tag or use different version |
 
-If automated release fails:
-
-```bash
-# Build
-uv build
-
-# Check built files
-ls -lh dist/
-
-# Upload to PyPI
-uv publish
-
-# Or to TestPyPI
-uv publish --publish-url https://test.pypi.org/legacy/
-```
-
-### Verify Release
-
-After release:
-
-1. Check PyPI: https://pypi.org/project/certbot-dns-hostinger/
-2. Test installation:
-   ```bash
-   pip install certbot-dns-hostinger
-   certbot plugins | grep hostinger
-   ```
-
-### Rollback
-
-If a release has issues:
-
-1. **Yank the release** on PyPI (doesn't delete, just marks as broken)
-2. **Fix the issue** on master
-3. **Cherry-pick to staging** when stable
-4. **Release new version** (can't re-upload same version)
-
-### Troubleshooting
-
-**"File already exists"**: Can't upload same version twice. Bump version and re-release.
-
-**"Invalid credentials"**: Check GitHub secrets or PyPI trusted publisher setup.
-
-**"Tests failed"**: Fix tests on master, cherry-pick to staging, try again.
+---
 
 ## First-Time Setup Checklist
 
-- [ ] Set up PyPI trusted publishing (or add API token to GitHub secrets)
-- [ ] Verify tests pass on staging branch
-- [ ] Update version in `pyproject.toml` (remove `.dev`)
-- [ ] Create and push tag: `git tag v0.1.0 && git push origin v0.1.0`
-- [ ] Create GitHub release
-- [ ] Verify package on PyPI
-- [ ] Test install: `pip install certbot-dns-hostinger`
+- [ ] Set up PyPI trusted publishing
+- [ ] Install GitHub CLI: `gh auth login`
+- [ ] Apply rulesets (see above)
+- [ ] Make `release_orchestrator.sh` executable: `chmod +x scripts/release_orchestrator.sh`
+- [ ] Test with a pre-release: `./scripts/release_orchestrator.sh v0.2.0-rc1 <commit>`
 
+---
+
+## Verify Release
+
+```bash
+# Check PyPI
+pip index versions certbot-dns-hostinger
+
+# Test install
+pip install certbot-dns-hostinger
+certbot plugins | grep hostinger
+```

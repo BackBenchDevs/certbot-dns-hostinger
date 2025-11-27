@@ -3,6 +3,7 @@ name: Tests
 # Branch strategy:
 # - master: development branch (active development)
 # - staging: stable commits cherry-picked from master for release preparation
+# Status check names: "test (3.11)", "test (3.12)", "lint"
 
 on:
   push:
@@ -13,6 +14,7 @@ on:
 
 jobs:
   test:
+    name: test (${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

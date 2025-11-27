@@ -1,0 +1,121 @@
+name: Create Release Tag
+
+# Triggered manually or by release_orchestrator.sh after staging validation
+# Creates annotated tag from staging branch and optionally a GitHub Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g. v1.2.3)'
+        required: true
+        type: string
+      create_release:
+        description: 'Create GitHub Release'
+        required: false
+        default: true
+        type: boolean
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  checks: read
+
+jobs:
+  validate-and-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate version format
+        run: |
+          if [[ ! "${{ inputs.version }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
+            echo "Error: Version must match v*.*.* format (e.g. v1.2.3 or v1.2.3-rc1)"
+            exit 1
+          fi
+
+      - name: Checkout staging
+        uses: actions/checkout@v4
+        with:
+          ref: staging
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Sync dependencies
+        run: uv sync --all-extras
+
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests on staging..."
+          uv run pytest -v -x --tb=short
+
+      - name: Run linter
+        run: |
+          uv run ruff check certbot_dns_hostinger/
+          uv run ruff format --check certbot_dns_hostinger/
+
+      - name: Update version in pyproject.toml
+        env:
+          TAG: ${{ inputs.version }}
+        run: |
+          VERSION="${TAG#v}"
+          echo "Setting version to $VERSION"
+          sed -i "s/^version = .*/version = \"$VERSION\"/" pyproject.toml
+          git diff pyproject.toml
+
+      - name: Create annotated tag
+        env:
+          TAG: ${{ inputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Commit version update if changed
+          if ! git diff --quiet pyproject.toml; then
+            git add pyproject.toml
+            git commit -m "chore: release $TAG"
+            git push origin staging
+          fi
+          
+          # Create annotated tag
+          git tag -a "$TAG" -m "Release $TAG
+
+Created from staging branch.
+Validated with: tests, lint, coverage."
+          
+          git push origin "$TAG"
+          echo "✅ Tag $TAG created and pushed"
+
+      - name: Create GitHub Release
+        if: inputs.create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.version }}
+          name: ${{ inputs.version }}
+          generate_release_notes: true
+          prerelease: ${{ inputs.prerelease }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        run: |
+          echo "## Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tag**: ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: staging" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: $(git rev-parse HEAD)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Release created**: ${{ inputs.create_release }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The publish workflow will automatically trigger to push to PyPI." >> $GITHUB_STEP_SUMMARY
+
