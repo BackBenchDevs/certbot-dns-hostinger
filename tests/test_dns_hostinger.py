@@ -1,6 +1,5 @@
 """Basic tests for certbot-dns-hostinger package structure and imports."""
 
-import pytest
 import os
 
 
@@ -67,19 +66,19 @@ class TestPackageMetadata:
 
     def test_pyproject_has_project_section(self):
         """Test that pyproject.toml has [project] section."""
-        with open("pyproject.toml", "r") as f:
+        with open("pyproject.toml") as f:
             content = f.read()
             assert "[project]" in content
 
     def test_pyproject_has_name(self):
         """Test that pyproject.toml defines package name."""
-        with open("pyproject.toml", "r") as f:
+        with open("pyproject.toml") as f:
             content = f.read()
             assert 'name = "certbot-dns-hostinger"' in content
 
     def test_pyproject_has_dependencies(self):
         """Test that pyproject.toml defines dependencies."""
-        with open("pyproject.toml", "r") as f:
+        with open("pyproject.toml") as f:
             content = f.read()
             assert "dependencies" in content
             assert "certbot" in content
@@ -87,7 +86,7 @@ class TestPackageMetadata:
 
     def test_pyproject_has_entry_point(self):
         """Test that pyproject.toml defines plugin entry point."""
-        with open("pyproject.toml", "r") as f:
+        with open("pyproject.toml") as f:
             content = f.read()
             assert '[project.entry-points."certbot.plugins"]' in content
             assert "dns-hostinger" in content
@@ -108,7 +107,7 @@ class TestTestInfrastructure:
         """Test that pytest.ini should exist (may not be created yet)."""
         # This is a soft check - pytest.ini might not exist in early development
         if os.path.exists("pytest.ini"):
-            with open("pytest.ini", "r") as f:
+            with open("pytest.ini") as f:
                 content = f.read()
                 assert "[pytest]" in content or "[tool:pytest]" in content
 
@@ -122,6 +121,6 @@ class TestCredentialsExample:
 
     def test_credentials_example_format(self):
         """Test that credentials example has correct format."""
-        with open("credentials.ini.example", "r") as f:
+        with open("credentials.ini.example") as f:
             content = f.read()
             assert "dns_hostinger_api_token" in content

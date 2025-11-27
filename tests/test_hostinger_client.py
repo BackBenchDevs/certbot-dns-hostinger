@@ -1,8 +1,10 @@
 """Tests for _HostingerClient class."""
 
+from unittest.mock import ANY, Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock, ANY
 from certbot import errors
+
 from certbot_dns_hostinger._internal.dns_hostinger import _HostingerClient
 
 

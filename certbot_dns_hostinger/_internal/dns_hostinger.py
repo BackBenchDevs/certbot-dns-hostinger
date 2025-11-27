@@ -2,10 +2,10 @@
 
 import logging
 import sys
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 from certbot import errors
-from certbot.compat import os
 from certbot.plugins import dns_common
 from certbot.plugins.dns_common import CredentialsConfiguration
 
@@ -33,7 +33,7 @@ class Authenticator(dns_common.DNSAuthenticator):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         logger.info("Initializing Hostinger authenticator")
         super().__init__(*args, **kwargs)
-        self.credentials: Optional[CredentialsConfiguration] = None
+        self.credentials: CredentialsConfiguration | None = None
         logger.info("Hostinger authenticator initialized")
 
     @classmethod
@@ -98,9 +98,11 @@ class Authenticator(dns_common.DNSAuthenticator):
         logger.info("Getting Hostinger client")
         """Returns an instance of the Hostinger client."""
         if not self.credentials:
-            raise errors.Error("Plugin has not been prepared.")
+            msg = "Plugin has not been prepared."
+            raise errors.Error(msg)
         return _HostingerClient(self.credentials.conf("api-token"))
         logger.info("Hostinger client obtained")
+        return None
 
 
 class _HostingerClient:
@@ -117,17 +119,20 @@ class _HostingerClient:
         if self._api_client is None:
             try:
                 logger.info("Initializing Hostinger API client")
-                from hostinger_api import Configuration, DNSZoneApi, ApiClient
+                from hostinger_api import ApiClient, Configuration, DNSZoneApi
 
                 config = Configuration(access_token=self.api_token)
                 api_client = ApiClient(config)
                 self._api_client = DNSZoneApi(api_client)
                 logger.info("Hostinger API client initialized")
             except ImportError as e:
-                logger.error("Encountered error initializing Hostinger API client: %s", e)
-                raise errors.PluginError(
+                logger.exception("Encountered error initializing Hostinger API client")
+                msg = (
                     "Could not import hostinger-api. Please install it with: "
                     "pip install hostinger-api"
+                )
+                raise errors.PluginError(
+                    msg
                 ) from e
         logger.info("Hostinger API client obtained")
         return self._api_client
@@ -172,11 +177,11 @@ class _HostingerClient:
 
             # Import models
             from hostinger_api.models import (
+                DNSV1ZoneDestroyRequest,
+                DNSV1ZoneDestroyRequestFiltersInner,
                 DNSV1ZoneUpdateRequest,
                 DNSV1ZoneUpdateRequestZoneInner,
                 DNSV1ZoneUpdateRequestZoneInnerRecordsInner,
-                DNSV1ZoneDestroyRequest,
-                DNSV1ZoneDestroyRequestFiltersInner,
             )
 
             # Step 1: GET - Read existing records to check for conflicts
@@ -209,10 +214,11 @@ class _HostingerClient:
             logger.info(f"Successfully added TXT record {subdomain} to {root_domain} zone")
 
         except Exception as e:
-            logger.error(f"Encountered error adding TXT record: {e}")
-            raise errors.PluginError(f"Encountered error adding TXT record: {e}") from e
+            logger.exception("Encountered error adding TXT record")
+            msg = f"Encountered error adding TXT record: {e}"
+            raise errors.PluginError(msg) from e
 
-    def del_txt_record(self, domain: str, record_name: str, record_content: str) -> None:
+    def del_txt_record(self, domain: str, record_name: str, _record_content: str) -> None:
         """Delete a TXT record using the Hostinger API."""
         logger.info("Deleting TXT record")
         try:

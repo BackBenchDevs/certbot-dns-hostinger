@@ -1,8 +1,9 @@
 """Pytest fixtures for certbot-dns-hostinger tests."""
 
+from typing import Any
+from unittest.mock import Mock
+
 import pytest
-from unittest.mock import MagicMock, Mock
-from typing import List, Dict, Any
 
 
 @pytest.fixture
@@ -42,7 +43,7 @@ def test_ttl() -> int:
 
 
 @pytest.fixture
-def mock_dns_record() -> Dict[str, Any]:
+def mock_dns_record() -> dict[str, Any]:
     """Return a mock DNS record."""
     mock_record = Mock()
     mock_record.name = "_acme-challenge"
@@ -54,7 +55,7 @@ def mock_dns_record() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def mock_dns_records() -> List[Any]:
+def mock_dns_records() -> list[Any]:
     """Return a list of mock DNS records."""
     records = []
 
@@ -137,7 +138,7 @@ def mock_hostinger_client(api_token):
 
 
 @pytest.fixture
-def sample_get_dns_response() -> List[Dict[str, Any]]:
+def sample_get_dns_response() -> list[dict[str, Any]]:
     """Return a sample GET DNS records API response."""
     return [
         {
@@ -168,7 +169,7 @@ def sample_get_dns_response() -> List[Dict[str, Any]]:
 
 
 @pytest.fixture
-def sample_update_dns_request() -> Dict[str, Any]:
+def sample_update_dns_request() -> dict[str, Any]:
     """Return a sample UPDATE DNS records API request."""
     return {
         "zone": [
@@ -184,6 +185,6 @@ def sample_update_dns_request() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_delete_dns_request() -> Dict[str, Any]:
+def sample_delete_dns_request() -> dict[str, Any]:
     """Return a sample DELETE DNS records API request."""
     return {"filters": [{"name": "_acme-challenge", "type": "TXT"}]}

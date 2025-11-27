@@ -1,8 +1,10 @@
 """Tests for Authenticator class."""
 
+from unittest.mock import Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
 from certbot import errors
+
 from certbot_dns_hostinger._internal.dns_hostinger import Authenticator
 
 

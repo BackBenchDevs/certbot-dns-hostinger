@@ -1,6 +1,5 @@
 """Tests for root domain extraction logic."""
 
-import pytest
 from certbot_dns_hostinger._internal.dns_hostinger import _HostingerClient
 
 
